@@ -117,7 +117,7 @@
   (setq slime-contribs '(slime-fancy)) ;; SLIME拡張機能を有効化
   (setq slime-complete-symbol*-fancy t) ;; 高度な補完機能を有効化
   (setq slime-completion-at-point-functions '(slime-fuzzy-complete-symbol)) ;; 補完機能をSLIMEのファジー補完に設定
-  (define-key slime-mode-map (kbd "TAB") 'slime-complete-symbol) ;; TABキーで補完を有効化
+  ; (define-key slime-mode-map (kbd "TAB") 'slime-complete-symbol) ;; TABキーで補完を有効化
   ;; slime-repl-mode-mapの設定は slime-repl のロード後に行う
   (with-eval-after-load 'slime-repl
     (define-key slime-repl-mode-map (kbd "TAB") 'slime-complete-symbol)))
@@ -299,3 +299,29 @@
                       :weight 'bold))
 
 (delete-selection-mode 1)
+(electric-indent-mode 1)
+
+;; whitespace-mode 設定
+(use-package whitespace
+  :ensure nil
+  :config
+  (setq whitespace-style '(face spaces tabs newline space-mark tab-mark newline-mark))
+  (setq whitespace-display-mappings
+        '((space-mark ?\u3000 [?\u25a1]) ;; 全角スペースを□で表示
+          (space-mark ?\  [?.] [?.])    ;; 半角スペースを.で表示
+          (newline-mark ?\n [?\u21b5 ?\n] [?$ ?\n]) ;; 改行記号を↵で表示
+          (tab-mark ?\t [?\u00BB ?\t] [?\\ ?\t]))) ;; タブを»で表示
+  (global-whitespace-mode 1)) ;; 全てのバッファで有効化
+
+;; スペースとタブの表示色を設定
+(set-face-attribute 'whitespace-space nil
+                    :background nil
+                    :foreground "gray50"
+                    :weight 'bold)
+(set-face-attribute 'whitespace-tab nil
+                    :background nil
+                    :foreground "gray35")
+(set-face-attribute 'whitespace-newline nil
+                    :background nil
+                    :foreground "gray20")
+
