@@ -276,3 +276,6 @@
 ;; or
 (use-package all-the-icons
   :if (display-graphic-p))
+
+(global-set-key (kbd "s-/") 'comment-line)
+
