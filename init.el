@@ -116,9 +116,12 @@
   (setq inferior-lisp-program "sbcl") ;; Lispインタプリタを指定
   (setq slime-contribs '(slime-fancy)) ;; SLIME拡張機能を有効化
   (setq slime-complete-symbol*-fancy t) ;; 高度な補完機能を有効化
-  (setq slime-completion-at-point-functions '(slime-fuzzy-complete-symbol)) ;; ファジー補完を有効化
-  (define-key slime-mode-map (kbd "TAB") 'slime-complete-symbol) ;; TABキーで補完
-  (define-key slime-repl-mode-map (kbd "TAB") 'slime-complete-symbol)) ;; REPLでTABで補完
+  (setq slime-completion-at-point-functions '(slime-fuzzy-complete-symbol)) ;; 補完機能をSLIMEのファジー補完に設定
+  (define-key slime-mode-map (kbd "TAB") 'slime-complete-symbol) ;; TABキーで補完を有効化
+  ;; slime-repl-mode-mapの設定は slime-repl のロード後に行う
+  (with-eval-after-load 'slime-repl
+    (define-key slime-repl-mode-map (kbd "TAB") 'slime-complete-symbol)))
+
 
 ;; slime-companyの設定
 (use-package slime-company
@@ -279,3 +282,20 @@
 
 (global-set-key (kbd "s-/") 'comment-line)
 
+;; 括弧の対応不足やエラーをハイライト表示
+(use-package paren
+  :ensure nil
+  :config
+  (show-paren-mode 1) ;; 対応する括弧をハイライト
+  (setq show-paren-delay 0) ;; ハイライトの遅延時間をゼロに
+  (setq show-paren-style 'mixed) ;; 括弧のスタイル（'parenthesis, 'expression, 'mixed）
+  (set-face-attribute 'show-paren-match nil
+                      :background "#44475a" ;; 対応する括弧の背景色
+                      :foreground "#f8f8f2"
+                      :weight 'bold)
+  (set-face-attribute 'show-paren-mismatch nil
+                      :background "#ff5555" ;; 対応しない括弧の背景色
+                      :foreground "#ffffff"
+                      :weight 'bold))
+
+(delete-selection-mode 1)
