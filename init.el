@@ -15,9 +15,23 @@
 ;; 基本設定
 (setq inhibit-startup-message t) ;; スタートアップメッセージを非表示
 (setq make-backup-files nil) ;; バックアップファイルを作成しない
-(setq auto-save-default t) ;; 自動保存
+(setq auto-save-default nil) ;; 標準の自動保存を無効化
 (global-display-line-numbers-mode t) ;; 行番号を表示
-(setq auto-save-interval 1) ;; 200文字ごとに保存
+
+(use-package auto-save-buffers-enhanced
+             :ensure t
+             :config
+             (setq auto-save-buffers-enhanced-interval 1)
+             (setq auto-save-buffers-enhanced-quiet-save-p t)
+             (auto-save-buffers-enhanced t))
+
+
+(defun dotspacemacs/user-config ()
+  ;; auto save buffers enhanced settings
+  (require 'auto-save-buffers-enhanced)
+  (setq auto-save-buffers-enhanced-interval 1)
+  (setq auto-save-buffers-enhanced-quiet-save-p t)
+  (auto-save-buffers-enhanced t))
 
 ;; ivy 設定
 (use-package ivy
@@ -167,9 +181,18 @@
 ;   (add-hook 'prog-mode-hook 'display-fill-column-indicator-mode))
 
 (custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(package-selected-packages
    '(format-all hiwin dashboard org-bullets git-gutter flymake-posframe posframe ivy-rich rainbow-delimiters flycheck display-fill-column-indicator company doom-themes which-key magit ivy slime)))
-(custom-set-faces)
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
 
 (use-package flycheck
              :ensure t
@@ -320,3 +343,18 @@
                 (forward-sexp)))))
 
 (global-set-key (kbd "M-f") 'slime-format-buffer)
+
+
+;; undo+ と redo+ を使用
+(require 'redo+)
+;; Ctrl + z で Undo
+(global-set-key (kbd "C-z") 'undo)
+;; Ctrl + Shift + z で Redo（複数回Redoを可能にする）
+(global-set-key (kbd "C-S-z") 'redo)
+;; Ctrl + y で Redoを行わないようにする
+(global-set-key (kbd "C-y") 'undefined)
+(defun custom-redo-only (orig-fun &rest args)
+  "Ctrl + Shift + ZでRedoを繰り返す動作に限定する"
+  (unless (or (eq last-command 'undo) (eq last-command 'redo))
+    (apply orig-fun args)))
+(advice-add 'redo :around 'custom-redo-only)
