@@ -75,16 +75,14 @@
 (add-hook 'slime-connected-hook 'my-slime-startup-hook)
 
 
-;; テーマ設定
-(use-package doom-themes
+;; rainbow-delimiters パッケージを読み込む
+(use-package rainbow-delimiters
              :ensure t
-             :config
-             (load-theme 'doom-one t))
+             :hook (prog-mode . rainbow-delimiters-mode)) ;; プログラムモードで有効にする
 
-; (use-package zenburn-theme
-;   :ensure t
-;   :config
-;   (load-theme 'zenburn t))
+;; テーマ設定
+(add-to-list 'custom-theme-load-path "~/.emacs.d/themes/")
+(load-theme 'jonadabian-slate t)
 
 ;; カスタム関数
 (defun open-init-file ()
@@ -358,3 +356,14 @@
   (unless (or (eq last-command 'undo) (eq last-command 'redo))
     (apply orig-fun args)))
 (advice-add 'redo :around 'custom-redo-only)
+
+;; Grepをプロジェクト全体で使用
+(global-set-key (kbd "C-c p f") 'project-find-file) ;; プロジェクト内ファイルを検索して開く
+(global-set-key (kbd "C-c p g") 'project-find-regexp) ;; プロジェクト内で正規表現検索
+(global-set-key (kbd "C-c p d") 'project-switch-project) ;; プロジェクトを切り替える
+
+(global-set-key (kbd "M-f") 'forward-word)
+
+(global-set-key (kbd "s-<return>") 'eval-last-sexp)
+
+(princ "te")
