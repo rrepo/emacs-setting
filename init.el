@@ -340,8 +340,11 @@
                 (slime-reindent-defun)
                 (forward-sexp)))))
 
-(global-set-key (kbd "M-f") 'slime-format-buffer)
+(global-set-key (kbd "M-F") 'slime-format-buffer)
 
+(global-set-key (kbd "M-f") 'forward-word)
+
+(global-set-key (kbd "s-<return>") 'eval-last-sexp)
 
 ;; undo+ と redo+ を使用
 (require 'redo+)
@@ -362,8 +365,3 @@
 (global-set-key (kbd "C-c p g") 'project-find-regexp) ;; プロジェクト内で正規表現検索
 (global-set-key (kbd "C-c p d") 'project-switch-project) ;; プロジェクトを切り替える
 
-(global-set-key (kbd "M-f") 'forward-word)
-
-(global-set-key (kbd "s-<return>") 'eval-last-sexp)
-
-(princ "te")
