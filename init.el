@@ -379,10 +379,22 @@
 ;; キーバインド設定
 (global-set-key (kbd "M-F") 'slime-format-buffer)
 
-
 (global-set-key (kbd "M-f") 'forward-word)
 
 (global-set-key (kbd "s-<return>") 'eval-last-sexp)
+
+;; Ctrl + Backspace で行末まで削除
+(defun kill-to-beginning-of-line ()
+  "Delete text from the cursor to the beginning of the line."
+  (interactive)
+  (delete-region (point) (line-beginning-position)))
+(global-set-key (kbd "s-<backspace>") 'kill-to-beginning-of-line)
+
+;; Alt + 矢印キーで括弧単位で移動
+(global-set-key (kbd "M-<right>") 'forward-sexp)
+(global-set-key (kbd "M-<left>") 'backward-sexp)
+(global-set-key (kbd "M-<down>") 'down-list)
+(global-set-key (kbd "M-<up>") 'backward-up-list)
 
 ;; undo+ と redo+ を使用
 (require 'redo+)
@@ -397,8 +409,6 @@
   (unless (or (eq last-command 'undo) (eq last-command 'redo))
     (apply orig-fun args)))
 (advice-add 'redo :around 'custom-redo-only)
-
-
 
 ;; Grepをプロジェクト全体で使用
 (global-set-key (kbd "C-c p f") 'project-find-file) ;; プロジェクト内ファイルを検索して開く
