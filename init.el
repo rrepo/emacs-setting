@@ -396,6 +396,17 @@
 (global-set-key (kbd "M-<down>") 'down-list)
 (global-set-key (kbd "M-<up>") 'backward-up-list)
 
+(defun duplicate-line ()
+  "Duplicate the current line below."
+  (interactive)
+  (let ((line-contents (buffer-substring (line-beginning-position) (line-end-position))))
+    (end-of-line)
+    (newline)
+    (insert line-contents)))
+
+;; Alt + Shift + ↓ に割り当てる
+(global-set-key (kbd "M-S-<down>") 'duplicate-line)
+
 ;; undo+ と redo+ を使用
 (require 'redo+)
 ;; Ctrl + z で Undo
