@@ -415,6 +415,8 @@
 ;; Alt + Shift + ↓ に割り当てる
 (global-set-key (kbd "M-S-<down>") 'duplicate-line)
 
+(define-key isearch-mode-map (kbd "s-v") 'isearch-yank-kill)
+
 ;; undo+ と redo+ を使用
 (require 'redo+)
 ;; Ctrl + z で Undo
