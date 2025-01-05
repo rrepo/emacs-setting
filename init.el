@@ -122,8 +122,6 @@
              (setq neo-theme (if (display-graphic-p) 'icons 'arrow)))
 (add-hook 'emacs-startup-hook 'neotree-toggle)
 
-(setq dired-omit-files "^\\.\\|^#\\|~$")
-
 ;; 補完機能
 (use-package slime
              :ensure t
@@ -386,7 +384,13 @@
 (global-set-key (kbd "s-<return>") 'eval-last-sexp)
 
 ;; Ctrl + Backspace で行末まで削除
-(global-set-key (kbd "C-<backspace>") 'backward-delete-char)
+(defun kill-to-beginning-of-line-or-backspace ()
+  "Delete text from the cursor to the beginning of the line, or act as backspace if at line start."
+  (interactive)
+  (if (bolp) ; カーソルが行頭にあるか確認
+      (call-interactively 'delete-backward-char) ; 通常のBackspace動作
+    (delete-region (point) (line-beginning-position)))) ; 行頭まで削除
+(global-set-key (kbd "s-<backspace>") 'kill-to-beginning-of-line-or-backspace)
 
 ;; Alt + 矢印キーで括弧単位で移動
 (global-set-key (kbd "M-<right>") 'forward-sexp)
