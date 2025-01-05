@@ -122,6 +122,8 @@
              (setq neo-theme (if (display-graphic-p) 'icons 'arrow)))
 (add-hook 'emacs-startup-hook 'neotree-toggle)
 
+(setq dired-omit-files "^\\.\\|^#\\|~$")
+
 ;; 補完機能
 (use-package slime
              :ensure t
@@ -384,11 +386,7 @@
 (global-set-key (kbd "s-<return>") 'eval-last-sexp)
 
 ;; Ctrl + Backspace で行末まで削除
-(defun kill-to-beginning-of-line ()
-  "Delete text from the cursor to the beginning of the line."
-  (interactive)
-  (delete-region (point) (line-beginning-position)))
-(global-set-key (kbd "s-<backspace>") 'kill-to-beginning-of-line)
+(global-set-key (kbd "C-<backspace>") 'backward-delete-char)
 
 ;; Alt + 矢印キーで括弧単位で移動
 (global-set-key (kbd "M-<right>") 'forward-sexp)
@@ -425,3 +423,4 @@
 (global-set-key (kbd "C-c p f") 'project-find-file) ;; プロジェクト内ファイルを検索して開く
 (global-set-key (kbd "C-c p g") 'project-find-regexp) ;; プロジェクト内で正規表現検索
 (global-set-key (kbd "C-c p d") 'project-switch-project) ;; プロジェクトを切り替える
+
