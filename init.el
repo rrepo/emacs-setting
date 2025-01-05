@@ -381,7 +381,13 @@
 
 (global-set-key (kbd "M-f") 'forward-word)
 
-(global-set-key (kbd "s-<return>") 'eval-last-sexp)
+(defun eval-last-sexp-or-slime ()
+  "Evaluate the last S-expression, using SLIME if available."
+  (interactive)
+  (if (bound-and-true-p slime-mode) ; SLIMEが有効か確認
+      (slime-eval-last-expression)  ; SLIMEのS式評価を実行
+    (eval-last-sexp nil)))           ; 通常のEmacs Lispの評価を実行
+(global-set-key (kbd "s-<return>") 'eval-last-sexp-or-slime)
 
 ;; Ctrl + Backspace で行末まで削除
 (defun kill-to-beginning-of-line-or-backspace ()
