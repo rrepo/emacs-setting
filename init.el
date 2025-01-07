@@ -191,9 +191,9 @@
 (global-set-key (kbd "s-<return>") 'my-slime-eval-with-output)
 
 
-;; +------+  
-;; | 見た目 |  
-;; +------+  
+;; +----------+  
+;; |   見た目  |  
+;; +----------+  
 
 ;; インデント設定
 (setq-default indent-tabs-mode nil) ;; タブをスペースに変換
