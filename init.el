@@ -184,7 +184,7 @@
   (interactive)
   (let* ((expression (slime-last-expression))
          (result (slime-eval `(swank:eval-and-grab-output ,expression))))
-    (message "標準出力: %s\n評価結果: %s"
+    (message "output: %s\nevaluation: %s"
              (car result) ;; 標準出力
              (cadr result)))) ;; 評価結果
 
