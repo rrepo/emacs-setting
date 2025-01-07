@@ -17,16 +17,12 @@
 (setq make-backup-files nil) ;; バックアップファイルを作成しない
 (setq auto-save-default nil) ;; 標準の自動保存を無効化
 (global-display-line-numbers-mode t) ;; 行番号を表示
+(xterm-mouse-mode 1) ;; マウス操作の有効化
 
 ;; キーマッピング
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 (global-set-key (kbd "M-o") 'other-window)
 (global-set-key (kbd "C-c r") 'replace-string)
-
-;; インデント設定
-(setq-default indent-tabs-mode nil) ;; タブをスペースに変換
-(setq-default tab-width 2) ;; タブ幅を2に設定
-(setq indent-line-function 'insert-tab)
 
 ;; bufferの最後でカーソルを動かそうとしても音をならなくする
 (defun next-line (arg)
@@ -81,6 +77,10 @@
              :ensure t
              :config
              (which-key-mode))
+
+;; +-------+  
+;; | SLIME |  
+;; +-------+  
 
 ;; SLIME 設定
 (use-package slime
@@ -191,6 +191,15 @@
 (global-set-key (kbd "s-<return>") 'my-slime-eval-with-output)
 
 
+;; +------+  
+;; | 見た目 |  
+;; +------+  
+
+;; インデント設定
+(setq-default indent-tabs-mode nil) ;; タブをスペースに変換
+(setq-default tab-width 2) ;; タブ幅を2に設定
+(setq indent-line-function 'insert-tab)
+
 ;; rainbow-delimiters パッケージを読み込む
 (use-package rainbow-delimiters
              :ensure t
@@ -245,6 +254,21 @@
              (setq neo-theme (if (display-graphic-p) 'icons 'arrow)))
 (add-hook 'emacs-startup-hook 'neotree-toggle)
 
+;; 起動画面の変更
+(use-package dashboard
+             :ensure t
+             :config
+             (dashboard-setup-startup-hook)
+             ;; ASCIIアートバナーを指定
+             (setq dashboard-startup-banner "~/.emacs.d/ascii-banner.txt")
+             ;; ロゴタイトルを非表示にする（任意）
+             (setq dashboard-banner-logo-title nil))
+
+(when (display-graphic-p)
+      (require 'all-the-icons))
+;; or
+(use-package all-the-icons
+             :if (display-graphic-p))
 
 ;; シンタックスハイライト
 (global-font-lock-mode t)
@@ -254,12 +278,33 @@
 ;; 行末の空白を可視化
 (setq show-trailing-whitespace t)
 
+;; whitespace-mode 設定
+(use-package whitespace
+             :ensure nil
+             :config
+             (setq whitespace-style '(face spaces tabs newline space-mark tab-mark newline-mark))
+             (setq whitespace-display-mappings
+                 '((space-mark ?\u3000 [?\u25a1]) ;; 全角スペースを□で表示
+                                                 (space-mark ?\ [?.] [?.]) ;; 半角スペースを.で表示
+                                                 (newline-mark ?\n [?\u21b5 ?\n] [?$ ?\n]) ;; 改行記号を↵で表示
+                                                 (tab-mark ?\t [?\u00BB ?\t] [?\\ ?\t]))) ;; タブを»で表示
+             (global-whitespace-mode 1)) ;; 全てのバッファで有効化
+
+;; スペースとタブの表示色を設定
+(set-face-attribute 'whitespace-space nil
+                    :background nil
+                    :foreground "gray50"
+                    :weight 'bold)
+(set-face-attribute 'whitespace-tab nil
+                    :background nil
+                    :foreground "gray35")
+(set-face-attribute 'whitespace-newline nil
+                    :background nil
+                    :foreground "gray20")
+
 ;; カーソルを線
 (add-to-list 'default-frame-alist '(cursor-type . bar))
 (blink-cursor-mode -1)
-
-;; マウス操作の有効化
-(xterm-mouse-mode 1)
 
 (custom-set-variables
  '(package-selected-packages
@@ -295,21 +340,6 @@
           (format "%s/%s" work-done-str effort-str))
         (format "%s" work-done-str))))
 
-;; 起動画面の変更
-(use-package dashboard
-             :ensure t
-             :config
-             (dashboard-setup-startup-hook)
-             ;; ASCIIアートバナーを指定
-             (setq dashboard-startup-banner "~/.emacs.d/ascii-banner.txt")
-             ;; ロゴタイトルを非表示にする（任意）
-             (setq dashboard-banner-logo-title nil))
-
-(when (display-graphic-p)
-      (require 'all-the-icons))
-;; or
-(use-package all-the-icons
-             :if (display-graphic-p))
 
 (global-set-key (kbd "s-/") 'comment-line)
 
@@ -332,29 +362,10 @@
 (delete-selection-mode 1)
 (electric-indent-mode 1)
 
-;; whitespace-mode 設定
-(use-package whitespace
-             :ensure nil
-             :config
-             (setq whitespace-style '(face spaces tabs newline space-mark tab-mark newline-mark))
-             (setq whitespace-display-mappings
-                 '((space-mark ?\u3000 [?\u25a1]) ;; 全角スペースを□で表示
-                                                 (space-mark ?\ [?.] [?.]) ;; 半角スペースを.で表示
-                                                 (newline-mark ?\n [?\u21b5 ?\n] [?$ ?\n]) ;; 改行記号を↵で表示
-                                                 (tab-mark ?\t [?\u00BB ?\t] [?\\ ?\t]))) ;; タブを»で表示
-             (global-whitespace-mode 1)) ;; 全てのバッファで有効化
+;; +--------------------------+  
+;; | vscode風のショートカット    |
+;; +--------------------------+  
 
-;; スペースとタブの表示色を設定
-(set-face-attribute 'whitespace-space nil
-                    :background nil
-                    :foreground "gray50"
-                    :weight 'bold)
-(set-face-attribute 'whitespace-tab nil
-                    :background nil
-                    :foreground "gray35")
-(set-face-attribute 'whitespace-newline nil
-                    :background nil
-                    :foreground "gray20")
 
 ;; Ctrl + Backspace で行末まで削除
 (defun kill-to-beginning-of-line-or-backspace ()
