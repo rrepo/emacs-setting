@@ -190,6 +190,7 @@
 
 (global-set-key (kbd "s-<return>") 'my-slime-eval-with-output)
 
+(global-set-key (kbd "M-L") 'slime-load-file)
 
 ;; +----------+  
 ;; |   見た目  |  
@@ -365,7 +366,6 @@
 ;; +--------------------------+  
 ;; | vscode風のショートカット    |
 ;; +--------------------------+  
-
 
 ;; Ctrl + Backspace で行末まで削除
 (defun kill-to-beginning-of-line-or-backspace ()
