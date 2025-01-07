@@ -18,6 +18,34 @@
 (setq auto-save-default nil) ;; 標準の自動保存を無効化
 (global-display-line-numbers-mode t) ;; 行番号を表示
 
+;; キーマッピング
+(global-set-key (kbd "C-x C-b") 'ibuffer)
+(global-set-key (kbd "M-o") 'other-window)
+(global-set-key (kbd "C-c r") 'replace-string)
+
+;; インデント設定
+(setq-default indent-tabs-mode nil) ;; タブをスペースに変換
+(setq-default tab-width 2) ;; タブ幅を2に設定
+(setq indent-line-function 'insert-tab)
+
+;; bufferの最後でカーソルを動かそうとしても音をならなくする
+(defun next-line (arg)
+  (interactive "p")
+  (condition-case nil
+                  (line-move arg)
+                  (end-of-buffer)))
+
+;; エラー音をならなくする
+(setq ring-bell-function 'ignore)
+
+(global-set-key (kbd "C-j")
+                (lambda ()
+                  (interactive)
+                  (split-window-below) ;; 下に新しいウィンドウを作成
+                  (other-window 1) ;; 作成したウィンドウに移動
+                  (eshell))) ;; eshellを起動
+
+
 (use-package auto-save-buffers-enhanced
              :ensure t
              :config
@@ -58,10 +86,19 @@
 (use-package slime
              :ensure t
              :config
-             ;; 使用する Lisp 実装（ここでは SBCL）を指定
+             ;; 使用する Lisp 実装（SBCL）を指定
              (setq inferior-lisp-program "/opt/homebrew/bin/sbcl") ;; SBCL のパスを指定
-             ;; Emacs 起動時に SLIME を自動的に接続する
-             (add-hook 'emacs-startup-hook #'slime))
+             ;; SLIME 拡張機能を有効化
+             (setq slime-contribs '(slime-fancy))
+             ;; 高度な補完機能を有効化
+             (setq slime-complete-symbol*-fancy t)
+             ;; 補完機能を SLIME のファジー補完に設定
+             (setq slime-completion-at-point-functions '(slime-fuzzy-complete-symbol))
+             ;; Emacs 起動時に SLIME を自動的に接続
+             (add-hook 'emacs-startup-hook #'slime)
+             ;; slime-repl-mode-map の設定
+             (with-eval-after-load 'slime-repl
+                                   (define-key slime-repl-mode-map (kbd "TAB") 'slime-complete-symbol)))
 
 (defun my-slime-startup-hook ()
   "SLIME起動後にウィンドウを非表示にする"
@@ -73,68 +110,6 @@
            (delete-window (get-buffer-window lisp-buffer)))))))
 
 (add-hook 'slime-connected-hook 'my-slime-startup-hook)
-
-
-;; rainbow-delimiters パッケージを読み込む
-(use-package rainbow-delimiters
-             :ensure t
-             :hook (prog-mode . rainbow-delimiters-mode)) ;; プログラムモードで有効にする
-
-;; テーマ設定
-(add-to-list 'custom-theme-load-path "~/.emacs.d/themes/")
-(load-theme 'jonadabian-slate t)
-
-;; カスタム関数
-(defun open-init-file ()
-  "初期化ファイルを開く関数。"
-  (interactive)
-  (find-file user-init-file))
-(global-set-key (kbd "C-c I") 'open-init-file)
-
-;; キーマッピング
-(global-set-key (kbd "C-x C-b") 'ibuffer)
-(global-set-key (kbd "M-o") 'other-window)
-(global-set-key (kbd "C-c r") 'replace-string)
-
-;; インデント設定
-(setq-default indent-tabs-mode nil) ;; タブをスペースに変換
-(setq-default tab-width 2) ;; タブ幅を2に設定
-(setq indent-line-function 'insert-tab)
-
-;; スペルチェック
-(use-package flyspell
-             :ensure t
-             :config
-             (add-hook 'text-mode-hook 'flyspell-mode)
-             (add-hook 'prog-mode-hook 'flyspell-prog-mode))
-
-(use-package all-the-icons
-             :ensure t)
-
-;; ファイルツリー
-(use-package neotree
-             :ensure t
-             :bind (("C-c n" . neotree-toggle)) ;; ショートカットキー
-             :config
-             (setq neo-window-fixed-size nil) ;; ウィンドウサイズを可変に設定
-             (setq neo-smart-open t)
-             (global-set-key [f8] 'neotree-toggle)
-             (setq neo-theme (if (display-graphic-p) 'icons 'arrow)))
-(add-hook 'emacs-startup-hook 'neotree-toggle)
-
-;; 補完機能
-(use-package slime
-             :ensure t
-             :config
-             (setq inferior-lisp-program "sbcl") ;; Lispインタプリタを指定
-             (setq slime-contribs '(slime-fancy)) ;; SLIME拡張機能を有効化
-             (setq slime-complete-symbol*-fancy t) ;; 高度な補完機能を有効化
-             (setq slime-completion-at-point-functions '(slime-fuzzy-complete-symbol)) ;; 補完機能をSLIMEのファジー補完に設定
-             ; (define-key slime-mode-map (kbd "TAB") 'slime-complete-symbol) ;; TABキーで補完を有効化
-             ;; slime-repl-mode-mapの設定は slime-repl のロード後に行う
-             (with-eval-after-load 'slime-repl
-                                   (define-key slime-repl-mode-map (kbd "TAB") 'slime-complete-symbol)))
-
 
 ;; slime-companyの設定
 (use-package slime-company
@@ -155,42 +130,71 @@
              (setq company-tooltip-align-annotations t) ;; 補完候補の説明を整列
              (setq company-backends '(company-slime company-files company-dabbrev)))
 
+;; フォーマット
+(defun slime-format-buffer ()
+  "SLIME を使用してバッファ全体をフォーマットします。
+- 不要な空白を削除（カッコ内外）
+- 行末の空白削除
+- 適切なインデント適用
+- コメントの整列"
+  (interactive)
+  (when (derived-mode-p 'lisp-mode 'slime-repl-mode)
+        (save-excursion
+         (goto-char (point-min))
 
-;; シンタックスハイライト
-(global-font-lock-mode t)
+         ;; 1. 開きカッコの後の不要な空白を削除
+         (while (re-search-forward "\\([(\[]\\)[ \t]+" nil t)
+                (replace-match "\\1"))
 
-(electric-pair-mode 1)
+         ;; 2. 閉じカッコの前の不要な空白を削除
+         (goto-char (point-min))
+         (while (re-search-forward "[ \t]+\\([\)\]]\\)" nil t)
+                (replace-match "\\1"))
 
-;; 行末の空白を可視化
-(setq show-trailing-whitespace t)
+         ;; 3. 行末の空白を削除
+         (goto-char (point-min))
+         (while (re-search-forward "[ \t]+$" nil t)
+                (replace-match ""))
 
-;; カーソルを線
-(add-to-list 'default-frame-alist '(cursor-type . bar))
-(blink-cursor-mode -1)
+         ;; 4. 複数の空行を1つにまとめる
+         (goto-char (point-min))
+         (while (re-search-forward "\n\\{3,\\}" nil t)
+                (replace-match "\n\n"))
 
-;; マウス操作の有効化
-(xterm-mouse-mode 1)
+         ;; 5. コメントの整列
+         (goto-char (point-min))
+         (while (re-search-forward "^[ \t]*;+" nil t)
+                (indent-for-tab-command))
 
-;; 80文字目にラインを表示
-; (use-package display-fill-column-indicator
-;   :ensure t
-;   :config
-;   (setq display-fill-column-indicator-column 80)
-;   (add-hook 'prog-mode-hook 'display-fill-column-indicator-mode))
+         ;; 6. SLIME を使った全体の再インデント
+         (goto-char (point-min))
+         (indent-region (point-min) (point-max))
 
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   '(format-all hiwin dashboard org-bullets git-gutter flymake-posframe posframe ivy-rich rainbow-delimiters flycheck display-fill-column-indicator company doom-themes which-key magit ivy slime)))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+         ;; 7. 各 `defun` ブロックの再インデント
+         (goto-char (point-min))
+         (while (not (eobp))
+                (when (not (looking-at-p "\\s-*$"))
+                      (slime-reindent-defun))
+                (forward-sexp)))))
+(global-set-key (kbd "M-F") 'slime-format-buffer)
+(global-set-key (kbd "M-f") 'forward-word)
+
+(defun my-slime-eval-with-output ()
+  "選択した式を評価し、標準出力と評価結果を表示する。"
+  (interactive)
+  (let* ((expression (slime-last-expression))
+         (result (slime-eval `(swank:eval-and-grab-output ,expression))))
+    (message "標準出力: %s\n評価結果: %s"
+             (car result) ;; 標準出力
+             (cadr result)))) ;; 評価結果
+
+(global-set-key (kbd "s-<return>") 'my-slime-eval-with-output)
+
+
+;; rainbow-delimiters パッケージを読み込む
+(use-package rainbow-delimiters
+             :ensure t
+             :hook (prog-mode . rainbow-delimiters-mode)) ;; プログラムモードで有効にする
 
 (use-package flycheck
              :ensure t
@@ -215,6 +219,52 @@
              :ensure t)
 
 (package-refresh-contents)
+
+;; テーマ設定
+(add-to-list 'custom-theme-load-path "~/.emacs.d/themes/")
+(load-theme 'jonadabian-slate t)
+
+;; スペルチェック
+(use-package flyspell
+             :ensure t
+             :config
+             (add-hook 'text-mode-hook 'flyspell-mode)
+             (add-hook 'prog-mode-hook 'flyspell-prog-mode))
+
+(use-package all-the-icons
+             :ensure t)
+
+;; ファイルツリー
+(use-package neotree
+             :ensure t
+             :bind (("C-c n" . neotree-toggle)) ;; ショートカットキー
+             :config
+             (setq neo-window-fixed-size nil) ;; ウィンドウサイズを可変に設定
+             (setq neo-smart-open t)
+             (global-set-key [f8] 'neotree-toggle)
+             (setq neo-theme (if (display-graphic-p) 'icons 'arrow)))
+(add-hook 'emacs-startup-hook 'neotree-toggle)
+
+
+;; シンタックスハイライト
+(global-font-lock-mode t)
+
+(electric-pair-mode 1)
+
+;; 行末の空白を可視化
+(setq show-trailing-whitespace t)
+
+;; カーソルを線
+(add-to-list 'default-frame-alist '(cursor-type . bar))
+(blink-cursor-mode -1)
+
+;; マウス操作の有効化
+(xterm-mouse-mode 1)
+
+(custom-set-variables
+ '(package-selected-packages
+   '(format-all hiwin dashboard org-bullets git-gutter flymake-posframe posframe ivy-rich rainbow-delimiters flycheck display-fill-column-indicator company doom-themes which-key magit ivy slime)))
+(custom-set-faces)
 
 (use-package git-gutter
              :ensure t ;; インストールを確実に行う
@@ -245,13 +295,6 @@
           (format "%s/%s" work-done-str effort-str))
         (format "%s" work-done-str))))
 
-(use-package org-bullets
-             :ensure t
-             :hook (org-mode . org-bullets-mode))
-
-(require 'org-bullets)
-(add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
-
 ;; 起動画面の変更
 (use-package dashboard
              :ensure t
@@ -261,23 +304,6 @@
              (setq dashboard-startup-banner "~/.emacs.d/ascii-banner.txt")
              ;; ロゴタイトルを非表示にする（任意）
              (setq dashboard-banner-logo-title nil))
-
-;; bufferの最後でカーソルを動かそうとしても音をならなくする
-(defun next-line (arg)
-  (interactive "p")
-  (condition-case nil
-                  (line-move arg)
-                  (end-of-buffer)))
-
-;; エラー音をならなくする
-(setq ring-bell-function 'ignore)
-
-(global-set-key (kbd "C-j")
-                (lambda ()
-                  (interactive)
-                  (split-window-below) ;; 下に新しいウィンドウを作成
-                  (other-window 1) ;; 作成したウィンドウに移動
-                  (eshell))) ;; eshellを起動
 
 (when (display-graphic-p)
       (require 'all-the-icons))
@@ -330,72 +356,13 @@
                     :background nil
                     :foreground "gray20")
 
-(defun slime-format-buffer ()
-  "SLIME を使用してバッファ全体をフォーマットします。
-- 不要な空白を削除（カッコ内外）
-- 行末の空白削除
-- 適切なインデント適用
-- コメントの整列"
-  (interactive)
-  (when (derived-mode-p 'lisp-mode 'slime-repl-mode)
-        (save-excursion
-         (goto-char (point-min))
-
-         ;; 1. 開きカッコの後の不要な空白を削除
-         (while (re-search-forward "\\([(\[]\\)[ \t]+" nil t)
-                (replace-match "\\1"))
-
-         ;; 2. 閉じカッコの前の不要な空白を削除
-         (goto-char (point-min))
-         (while (re-search-forward "[ \t]+\\([\)\]]\\)" nil t)
-                (replace-match "\\1"))
-
-         ;; 3. 行末の空白を削除
-         (goto-char (point-min))
-         (while (re-search-forward "[ \t]+$" nil t)
-                (replace-match ""))
-
-         ;; 4. 複数の空行を1つにまとめる
-         (goto-char (point-min))
-         (while (re-search-forward "\n\\{3,\\}" nil t)
-                (replace-match "\n\n"))
-
-         ;; 5. コメントの整列
-         (goto-char (point-min))
-         (while (re-search-forward "^[ \t]*;+" nil t)
-                (indent-for-tab-command))
-
-         ;; 6. SLIME を使った全体の再インデント
-         (goto-char (point-min))
-         (indent-region (point-min) (point-max))
-
-         ;; 7. 各 `defun` ブロックの再インデント
-         (goto-char (point-min))
-         (while (not (eobp))
-                (when (not (looking-at-p "\\s-*$"))
-                      (slime-reindent-defun))
-                (forward-sexp)))))
-
-;; キーバインド設定
-(global-set-key (kbd "M-F") 'slime-format-buffer)
-
-(global-set-key (kbd "M-f") 'forward-word)
-
-(defun eval-last-sexp-or-slime ()
-  "Evaluate the last S-expression, using SLIME if available."
-  (interactive)
-  (if (bound-and-true-p slime-mode) ; SLIMEが有効か確認
-      (slime-eval-last-expression)  ; SLIMEのS式評価を実行
-    (eval-last-sexp nil)))           ; 通常のEmacs Lispの評価を実行
-(global-set-key (kbd "s-<return>") 'eval-last-sexp-or-slime)
-
 ;; Ctrl + Backspace で行末まで削除
 (defun kill-to-beginning-of-line-or-backspace ()
   "Delete text from the cursor to the beginning of the line, or act as backspace if at line start."
   (interactive)
   (if (bolp) ; カーソルが行頭にあるか確認
       (call-interactively 'delete-backward-char) ; 通常のBackspace動作
-    (delete-region (point) (line-beginning-position)))) ; 行頭まで削除
+      (delete-region (point) (line-beginning-position)))) ; 行頭まで削除
 (global-set-key (kbd "s-<backspace>") 'kill-to-beginning-of-line-or-backspace)
 
 ;; Alt + 矢印キーで括弧単位で移動
@@ -430,9 +397,3 @@
   (unless (or (eq last-command 'undo) (eq last-command 'redo))
     (apply orig-fun args)))
 (advice-add 'redo :around 'custom-redo-only)
-
-;; Grepをプロジェクト全体で使用
-(global-set-key (kbd "C-c p f") 'project-find-file) ;; プロジェクト内ファイルを検索して開く
-(global-set-key (kbd "C-c p g") 'project-find-regexp) ;; プロジェクト内で正規表現検索
-(global-set-key (kbd "C-c p d") 'project-switch-project) ;; プロジェクトを切り替える
-
