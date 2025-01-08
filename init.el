@@ -322,9 +322,18 @@
 (blink-cursor-mode -1)
 
 (custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(format-all hiwin dashboard org-bullets git-gutter flymake-posframe posframe ivy-rich rainbow-delimiters flycheck display-fill-column-indicator company doom-themes which-key magit ivy slime)))
-(custom-set-faces)
+   '(undo-tree format-all hiwin dashboard org-bullets git-gutter flymake-posframe posframe ivy-rich rainbow-delimiters flycheck display-fill-column-indicator company doom-themes which-key magit ivy slime)))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
 
 (use-package git-gutter
              :ensure t ;; インストールを確実に行う
@@ -409,16 +418,9 @@
 
 (define-key isearch-mode-map (kbd "s-v") 'isearch-yank-kill)
 
-;; undo+ と redo+ を使用
-(require 'redo+)
-;; Ctrl + z で Undo
-(global-set-key (kbd "C-z") 'undo)
-;; Ctrl + Shift + z で Redo（複数回Redoを可能にする）
-(global-set-key (kbd "C-S-z") 'redo)
-;; Ctrl + y で Redoを行わないようにする
-(global-set-key (kbd "C-y") 'undefined)
-(defun custom-redo-only (orig-fun &rest args)
-  "Ctrl + Shift + ZでRedoを繰り返す動作に限定する"
-  (unless (or (eq last-command 'undo) (eq last-command 'redo))
-    (apply orig-fun args)))
-(advice-add 'redo :around 'custom-redo-only)
+(use-package undo-tree
+             :ensure t
+             :config
+             (global-undo-tree-mode)
+             (global-set-key (kbd "C-z") 'undo)
+             (global-set-key (kbd "C-S-z") 'undo-tree-redo))
