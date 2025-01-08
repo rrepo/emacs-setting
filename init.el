@@ -67,10 +67,24 @@
              :config
              (ivy-mode 1))
 
+;; +-------+  
+;; |  git  |  
+;; +-------+  
+
 ;; magit 設定
 (use-package magit
              :ensure t
              :bind (("C-x g" . magit-status)))
+
+;; Forge
+(use-package forge
+  :after magit)
+
+;; Diff-hl
+(use-package diff-hl
+  :hook ((prog-mode . diff-hl-mode)
+         (magit-pre-refresh . diff-hl-magit-pre-refresh)
+         (magit-post-refresh . diff-hl-magit-post-refresh)))
 
 ;; which-key 設定
 (use-package which-key
