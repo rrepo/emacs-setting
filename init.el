@@ -137,6 +137,67 @@
 
 (add-hook 'slime-connected-hook 'my-slime-startup-hook)
 
+;; フォーマット
+(defun slime-format-buffer ()
+  "SLIME を使用してバッファ全体をフォーマットします。
+- 不要な空白を削除（カッコ内外）
+- 行末の空白削除
+- 適切なインデント適用
+- コメントの整列"
+  (interactive)
+  (when (derived-mode-p 'lisp-mode 'slime-repl-mode)
+        (save-excursion
+         (goto-char (point-min))
+
+         ;; 1. 開きカッコの後の不要な空白を削除
+         (while (re-search-forward "\\([(\[]\\)[ \t]+" nil t)
+                (replace-match "\\1"))
+
+         ;; 2. 閉じカッコの前の不要な空白を削除
+         (goto-char (point-min))
+         (while (re-search-forward "[ \t]+\\([\)\]]\\)" nil t)
+                (replace-match "\\1"))
+
+         ;; 3. 行末の空白を削除
+         (goto-char (point-min))
+         (while (re-search-forward "[ \t]+$" nil t)
+                (replace-match ""))
+
+         ;; 4. 複数の空行を1つにまとめる
+         (goto-char (point-min))
+         (while (re-search-forward "\n\\{3,\\}" nil t)
+                (replace-match "\n\n"))
+
+         ;; 5. コメントの整列
+         (goto-char (point-min))
+         (while (re-search-forward "^[ \t]*;+" nil t)
+                (indent-for-tab-command))
+
+         ;; 6. SLIME を使った全体の再インデント
+         (goto-char (point-min))
+         (indent-region (point-min) (point-max))
+
+         ;; 7. 各 `defun` ブロックの再インデント
+         (goto-char (point-min))
+         (while (not (eobp))
+                (when (not (looking-at-p "\\s-*$"))
+                      (slime-reindent-defun))
+                (forward-sexp)))))
+(global-set-key (kbd "M-F") 'slime-format-buffer)
+(global-set-key (kbd "M-f") 'forward-word)
+
+(defun my-slime-eval-with-output ()
+  "選択した式を評価し、標準出力と評価結果を表示する。"
+  (interactive)
+  (let* ((expression (slime-last-expression))
+         (result (slime-eval `(swank:eval-and-grab-output ,expression))))
+    (message "output: %s\nevaluation: %s"
+             (car result) ;; 標準出力
+             (cadr result)))) ;; 評価結果
+
+(global-set-key (kbd "s-<return>") 'my-slime-eval-with-output)
+
+(global-set-key (kbd "M-L") 'slime-load-file)
 
 ;; Alive LSP 設定（LSP モード）
 (use-package lsp-mode
