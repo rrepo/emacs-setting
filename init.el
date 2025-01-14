@@ -92,27 +92,39 @@
              :config
              (which-key-mode))
 
-;; +-------+  
-;; | SLIME |  
-;; +-------+  
+;; +--------------- +  
+;; | コード入力、補完  |  
+;; +----------------+  
 
-;; SLIME 設定
+(defun run-alive-server ()
+  "Run the Alive LSP server using an external shell script."
+  (interactive)
+  (let ((script-path "/Users/sample/.emacs.d/start-alive-server.sh")) ;; 絶対パスを指定
+    (if (file-executable-p script-path)
+        (progn
+         (message "Starting Alive server...")
+         (start-process "alive-server" "*Alive Server Output*" "bash" script-path)
+         (message "Alive server started."))
+        (message "Script not found or not executable: %s" script-path))))
+
+
+;; SLIMEの設定
 (use-package slime
              :ensure t
              :config
-             ;; 使用する Lisp 実装（SBCL）を指定
-             (setq inferior-lisp-program "/opt/homebrew/bin/sbcl") ;; SBCL のパスを指定
-             ;; SLIME 拡張機能を有効化
-             (setq slime-contribs '(slime-fancy))
-             ;; 高度な補完機能を有効化
-             (setq slime-complete-symbol*-fancy t)
-             ;; 補完機能を SLIME のファジー補完に設定
-             (setq slime-completion-at-point-functions '(slime-fuzzy-complete-symbol))
-             ;; Emacs 起動時に SLIME を自動的に接続
+             ;; SBCLをLisp処理系として設定
+             (setq inferior-lisp-program "sbcl")
+
+             ;; Emacs起動時にSLIMEを自動起動
              (add-hook 'emacs-startup-hook #'slime)
-             ;; slime-repl-mode-map の設定
-             (with-eval-after-load 'slime-repl
-                                   (define-key slime-repl-mode-map (kbd "TAB") 'slime-complete-symbol)))
+
+             ;; SLIME接続時にrun-alive-serverを実行
+             (add-hook 'slime-connected-hook
+                       (lambda ()
+                         (message "Connected to SLIME. Running Alive server start script...")
+                         ;; run-alive-serverを実行
+                         (run-alive-server)
+                         (message "Alive server start script executed."))))
 
 (defun my-slime-startup-hook ()
   "SLIME起動後にウィンドウを非表示にする"
@@ -125,86 +137,30 @@
 
 (add-hook 'slime-connected-hook 'my-slime-startup-hook)
 
-;; slime-companyの設定
-(use-package slime-company
-             :ensure t
-             :after (slime company)
-             :config
-             (setq slime-company-completion 'fuzzy) ;; ファジー補完を有効化
-             (setq slime-company-completion-limit 20) ;; 補完候補の最大数
-             (add-to-list 'company-backends 'company-slime)) ;; companyバックエンドにslimeを追加
 
-;; Companyの設定
+;; Alive LSP 設定（LSP モード）
+(use-package lsp-mode
+             :ensure t
+             :commands (lsp lsp-deferred)
+             :hook ((lisp-mode . lsp-deferred)) ;; Lisp モードで LSP を有効化
+             :config
+             ;; サーバーコマンドの設定を外部スクリプトに変更（手動でサーバーを起動する場合）
+             (setq lsp-lisp-server-command nil)
+             ;; ヘッダーラインを無効化（任意）
+             (setq lsp-headerline-breadcrumb-enable nil)
+             ;; lisp-mode を "commonlisp" に関連付け
+             (add-to-list 'lsp-language-id-configuration
+                          '(lisp-mode . "commonlisp")))
+
+;; Company設定 (Alive LSP 用)
 (use-package company
              :ensure t
              :config
-             (global-company-mode) ;; 全バッファで補完を有効化
-             (setq company-idle-delay 0.2) ;; 補完を開始するまでの待ち時間
-             (setq company-minimum-prefix-length 1) ;; 補完を開始する文字数
-             (setq company-tooltip-align-annotations t) ;; 補完候補の説明を整列
-             (setq company-backends '(company-slime company-files company-dabbrev)))
-
-;; フォーマット
-(defun slime-format-buffer ()
-  "SLIME を使用してバッファ全体をフォーマットします。
-- 不要な空白を削除（カッコ内外）
-- 行末の空白削除
-- 適切なインデント適用
-- コメントの整列"
-  (interactive)
-  (when (derived-mode-p 'lisp-mode 'slime-repl-mode)
-        (save-excursion
-         (goto-char (point-min))
-
-         ;; 1. 開きカッコの後の不要な空白を削除
-         (while (re-search-forward "\\([(\[]\\)[ \t]+" nil t)
-                (replace-match "\\1"))
-
-         ;; 2. 閉じカッコの前の不要な空白を削除
-         (goto-char (point-min))
-         (while (re-search-forward "[ \t]+\\([\)\]]\\)" nil t)
-                (replace-match "\\1"))
-
-         ;; 3. 行末の空白を削除
-         (goto-char (point-min))
-         (while (re-search-forward "[ \t]+$" nil t)
-                (replace-match ""))
-
-         ;; 4. 複数の空行を1つにまとめる
-         (goto-char (point-min))
-         (while (re-search-forward "\n\\{3,\\}" nil t)
-                (replace-match "\n\n"))
-
-         ;; 5. コメントの整列
-         (goto-char (point-min))
-         (while (re-search-forward "^[ \t]*;+" nil t)
-                (indent-for-tab-command))
-
-         ;; 6. SLIME を使った全体の再インデント
-         (goto-char (point-min))
-         (indent-region (point-min) (point-max))
-
-         ;; 7. 各 `defun` ブロックの再インデント
-         (goto-char (point-min))
-         (while (not (eobp))
-                (when (not (looking-at-p "\\s-*$"))
-                      (slime-reindent-defun))
-                (forward-sexp)))))
-(global-set-key (kbd "M-F") 'slime-format-buffer)
-(global-set-key (kbd "M-f") 'forward-word)
-
-(defun my-slime-eval-with-output ()
-  "選択した式を評価し、標準出力と評価結果を表示する。"
-  (interactive)
-  (let* ((expression (slime-last-expression))
-         (result (slime-eval `(swank:eval-and-grab-output ,expression))))
-    (message "output: %s\nevaluation: %s"
-             (car result) ;; 標準出力
-             (cadr result)))) ;; 評価結果
-
-(global-set-key (kbd "s-<return>") 'my-slime-eval-with-output)
-
-(global-set-key (kbd "M-L") 'slime-load-file)
+             (global-company-mode) ;; グローバルで有効化
+             (setq company-idle-delay 0.2 ;; 補完の遅延時間
+               company-minimum-prefix-length 1 ;; 補完開始の最小文字数
+               company-tooltip-align-annotations t ;; ツールチップの整列
+               company-backends '(company-capf company-files))) ;; LSP補完を優先
 
 ;; +----------+  
 ;; |   見た目  |  
@@ -220,24 +176,9 @@
              :ensure t
              :hook (prog-mode . rainbow-delimiters-mode)) ;; プログラムモードで有効にする
 
-(use-package flycheck
-             :ensure t
-             :config
-             (global-flycheck-mode))
-
-(use-package flycheck
-             :ensure t
-             :config
-             (global-flycheck-mode))
-
 (use-package rainbow-delimiters
              :ensure t
              :hook (prog-mode . rainbow-delimiters-mode))
-
-(use-package company
-             :ensure t
-             :config
-             (global-company-mode))
 
 (use-package posframe
              :ensure t)
@@ -327,7 +268,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(undo-tree format-all hiwin dashboard org-bullets git-gutter flymake-posframe posframe ivy-rich rainbow-delimiters flycheck display-fill-column-indicator company doom-themes which-key magit ivy slime)))
+   '(ggtags undo-tree format-all hiwin dashboard org-bullets git-gutter flymake-posframe posframe ivy-rich rainbow-delimiters flycheck display-fill-column-indicator company doom-themes which-key magit ivy slime)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
