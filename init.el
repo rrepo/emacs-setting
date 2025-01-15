@@ -96,18 +96,6 @@
 ;; | コード入力、補完  |  
 ;; +----------------+  
 
-(defun run-alive-server ()
-  "Run the Alive LSP server using an external shell script."
-  (interactive)
-  (let ((script-path "/Users/sample/.emacs.d/start-alive-server.sh")) ;; 絶対パスを指定
-    (if (file-executable-p script-path)
-        (progn
-         (message "Starting Alive server...")
-         (start-process "alive-server" "*Alive Server Output*" "bash" script-path)
-         (message "Alive server started."))
-        (message "Script not found or not executable: %s" script-path))))
-
-
 ;; SLIMEの設定
 (use-package slime
              :ensure t
@@ -116,15 +104,7 @@
              (setq inferior-lisp-program "sbcl")
 
              ;; Emacs起動時にSLIMEを自動起動
-             (add-hook 'emacs-startup-hook #'slime)
-
-             ;; SLIME接続時にrun-alive-serverを実行
-             (add-hook 'slime-connected-hook
-                       (lambda ()
-                         (message "Connected to SLIME. Running Alive server start script...")
-                         ;; run-alive-serverを実行
-                         (run-alive-server)
-                         (message "Alive server start script executed."))))
+             (add-hook 'emacs-startup-hook #'slime))
 
 (defun my-slime-startup-hook ()
   "SLIME起動後にウィンドウを非表示にする"
@@ -137,6 +117,53 @@
 
 (add-hook 'slime-connected-hook 'my-slime-startup-hook)
 
+;; フォーマット
+(defun slime-format-buffer ()
+  "SLIME を使用してバッファ全体をフォーマットします。
+- 不要な空白を削除（カッコ内外）
+- 行末の空白削除
+- 適切なインデント適用
+- コメントの整列"
+  (interactive)
+  (when (derived-mode-p 'lisp-mode 'slime-repl-mode)
+        (save-excursion
+         (goto-char (point-min))
+
+         ;; 1. 開きカッコの後の不要な空白を削除
+         (while (re-search-forward "\\([(\[]\\)[ \t]+" nil t)
+                (replace-match "\\1"))
+
+         ;; 2. 閉じカッコの前の不要な空白を削除
+         (goto-char (point-min))
+         (while (re-search-forward "[ \t]+\\([\)\]]\\)" nil t)
+                (replace-match "\\1"))
+
+         ;; 3. 行末の空白を削除
+         (goto-char (point-min))
+         (while (re-search-forward "[ \t]+$" nil t)
+                (replace-match ""))
+
+         ;; 4. 複数の空行を1つにまとめる
+         (goto-char (point-min))
+         (while (re-search-forward "\n\\{3,\\}" nil t)
+                (replace-match "\n\n"))
+
+         ;; 5. コメントの整列
+         (goto-char (point-min))
+         (while (re-search-forward "^[ \t]*;+" nil t)
+                (indent-for-tab-command))
+
+         ;; 6. SLIME を使った全体の再インデント
+         (goto-char (point-min))
+         (indent-region (point-min) (point-max))
+
+         ;; 7. 各 `defun` ブロックの再インデント
+         (goto-char (point-min))
+         (while (not (eobp))
+                (when (not (looking-at-p "\\s-*$"))
+                      (slime-reindent-defun))
+                (forward-sexp)))))
+(global-set-key (kbd "M-F") 'slime-format-buffer)
 (global-set-key (kbd "M-f") 'forward-word)
 
 (defun my-slime-eval-with-output ()
@@ -152,20 +179,35 @@
 
 (global-set-key (kbd "M-L") 'slime-load-file)
 
+(defun run-alive-server ()
+  "Run the Alive LSP server using an external shell script."
+  (interactive)
+  (let ((script-path "/Users/sample/.emacs.d/start-alive-server.sh")) ;; 絶対パスを指定
+    (if (file-executable-p script-path)
+        (progn
+         (message "Starting Alive server...")
+         (start-process "alive-server" "*Alive Server Output*" "bash" script-path)
+         (message "Alive server started."))
+        (message "Script not found or not executable: %s" script-path))))
+
+;; Emacsの起動時にrun-alive-serverを実行
+(add-hook 'emacs-startup-hook #'run-alive-server)
+
 ;; Alive LSP 設定（LSP モード）
 (use-package lsp-mode
              :ensure t
              :commands (lsp lsp-deferred)
              :hook ((lisp-mode . lsp-deferred)) ;; Lisp モードで LSP を有効化
              :config
-             ;; サーバーコマンドの設定を外部スクリプトに変更（手動でサーバーを起動する場合）
+             ;; LSPによるフォーマットを無効化
+             (setq lsp-enable-on-type-formatting nil)
+             (setq lsp-enable-indentation nil)
              (setq lsp-lisp-server-command nil)
              ;; ヘッダーラインを無効化（任意）
              (setq lsp-headerline-breadcrumb-enable nil)
              ;; lisp-mode を "commonlisp" に関連付け
              (add-to-list 'lsp-language-id-configuration
                           '(lisp-mode . "commonlisp")))
-
 ;; Company設定 (Alive LSP 用)
 (use-package company
              :ensure t
