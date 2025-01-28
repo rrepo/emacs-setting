@@ -179,35 +179,6 @@
 
 (global-set-key (kbd "M-L") 'slime-load-file)
 
-(defun run-alive-server ()
-  "Run the Alive LSP server using an external shell script."
-  (interactive)
-  (let ((script-path "/Users/sample/.emacs.d/start-alive-server.sh")) ;; 絶対パスを指定
-    (if (file-executable-p script-path)
-        (progn
-         (message "Starting Alive server...")
-         (start-process "alive-server" "*Alive Server Output*" "bash" script-path)
-         (message "Alive server started."))
-        (message "Script not found or not executable: %s" script-path))))
-
-;; Emacsの起動時にrun-alive-serverを実行
-(add-hook 'emacs-startup-hook #'run-alive-server)
-
-;; Alive LSP 設定（LSP モード）
-(use-package lsp-mode
-             :ensure t
-             :commands (lsp lsp-deferred)
-             :hook ((lisp-mode . lsp-deferred)) ;; Lisp モードで LSP を有効化
-             :config
-             ;; LSPによるフォーマットを無効化
-             (setq lsp-enable-on-type-formatting nil)
-             (setq lsp-enable-indentation nil)
-             (setq lsp-lisp-server-command nil)
-             ;; ヘッダーラインを無効化（任意）
-             (setq lsp-headerline-breadcrumb-enable nil)
-             ;; lisp-mode を "commonlisp" に関連付け
-             (add-to-list 'lsp-language-id-configuration
-                          '(lisp-mode . "commonlisp")))
 ;; Company設定 (Alive LSP 用)
 (use-package company
              :ensure t
@@ -215,8 +186,22 @@
              (global-company-mode) ;; グローバルで有効化
              (setq company-idle-delay 0.2 ;; 補完の遅延時間
                company-minimum-prefix-length 1 ;; 補完開始の最小文字数
-               company-tooltip-align-annotations t ;; ツールチップの整列
-               company-backends '(company-capf company-files))) ;; LSP補完を優先
+               ))
+
+; alive lsp設定
+(use-package lsp-mode
+             :ensure t
+             :config
+             (setq lsp-language-id-configuration
+                 '((lisp-mode . "lisp"))) ;; Lispファイルに対して「lisp」として識別する
+
+             ;; lisp-modeが開いたときに自動でLSPを起動
+             (add-hook 'lisp-mode-hook #'lsp))
+
+(setq lsp-live-server-address "localhost") ;; Alive LSPサーバーのアドレス
+(setq lsp-live-server-port 8006) ;; Alive LSPサーバーのポート番号
+
+
 
 ;; +----------+  
 ;; |   見た目  |  
